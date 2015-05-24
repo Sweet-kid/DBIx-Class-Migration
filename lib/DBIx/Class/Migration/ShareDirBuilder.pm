@@ -4,6 +4,14 @@ use Moose;
 use version 0.77;
 use File::ShareDir::ProjectDistDir 0.3.1 ();
 
+use Log::Any;
+
+has log => (
+    is  => 'ro',
+    isa => 'Log::Any::Proxy',
+    default => sub { Log::Any->get_logger( category => 'DBIx::Class::Migration') },
+);
+
 has schema_class => (
   is => 'ro',
   isa => 'Str',
@@ -30,7 +38,7 @@ sub build {
     last unless $class =~s/::[^\:\:]+$//;
   }
 
-  return $sharedir || die "Can't find a share ($sharedir) for $class";
+  return $sharedir || $self->log->error( "Can't find a share ($sharedir) for $class" );
 
 }
 

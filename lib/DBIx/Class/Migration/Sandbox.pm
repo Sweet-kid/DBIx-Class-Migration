@@ -1,9 +1,16 @@
 package DBIx::Class::Migration::Sandbox;
 
 use Moose::Role;
+use Log::Any;
 
 has target_dir => (is=>'ro', required=>1);
 has schema_class => (is=>'ro', required=>1);
+
+has log => (
+    is  => 'ro',
+    isa => 'Log::Any::Proxy',
+    default => sub { Log::Any->get_logger( category => 'DBIx::Class::Migration') },
+);
 
 requires 'make_sandbox';
 

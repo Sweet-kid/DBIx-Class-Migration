@@ -4,10 +4,18 @@ use Moose;
 use Moose::Exporter;
 use Text::Brew qw(distance);
 
+use Log::Any;
+
 Moose::Exporter->setup_import_methods(
   as_is => ['builder', 'migrate']);
 
 with 'MooseX::Traits::Pluggable';
+
+has log => (
+    is  => 'ro',
+    isa => 'Log::Any::Proxy',
+    default => sub { Log::Any->get_logger( category => 'DBIx::Class::Migration') },
+);
 
 has '+_trait_namespace' => (default=>'+Trait');
 has 'dbh' => (is=>'rw', isa=>'Object');
@@ -30,7 +38,7 @@ sub handle_errors {
       (distance($_, $1))[0] < 3 ? "$_ <== Possible Match\n" : "$_\n";
     } $self->schema->sources;
 
-    die <<"ERR";
+    my $error =<<"ERR";
 $err
 You are probably seeing this error because the DBIC source in your migration
 script called "$1" doesn't match a source defined in the schema that
@@ -46,13 +54,14 @@ schema available to your migration knows about:
 
  @presentsources
 ERR
+    $self->log->error( $error );
   } elsif($err =~m/No such column (.+?) on DBIx.+?Result::(.+?) at/) {
     my @presentsources = map {
       (distance($_, $1))[0] < 3 ? "$_ <== Possible Match\n" : "$_\n";
     } ($self->schema->resultset($2)->result_source->columns,
         $self->schema->resultset($2)->result_source->relationships);
 
-    die <<"ERR";
+    my $error =<<"ERR";
 $err
 You are probably seeing this error because the DBIC resultset $2 does
 not have a column or method called $1 defined in the schema which
@@ -68,8 +77,9 @@ that $2 has available:
 
  @presentsources
 ERR
+    $self->log->error( $error );
   } else {
-    die $err;
+    $self->log->error( $err );
   }
 }
 

@@ -5,6 +5,7 @@ use MooseX::Attribute::ENV;
 use MooseX::Types::LoadableClass 'LoadableClass';
 use Pod::Find ();
 use Pod::Usage ();
+use Log::Any;
 
 with 'MooseX::Getopt';
 
@@ -18,6 +19,12 @@ use constant {
   SANDBOX_MYSQL => 'MySQLSandbox',
   SANDBOX_POSTGRESQL => 'PostgresqlSandbox',
 };
+
+has log => (
+    is  => 'ro',
+    isa => 'Log::Any::Proxy',
+    default => sub { Log::Any->get_logger( category => 'DBIx::Class::Migration') },
+);
 
 has includes => (
   traits => ['Getopt'],
@@ -230,7 +237,7 @@ sub run {
     foreach my $cmd ($argv, @extra_argv) {
       $self->can("cmd_${cmd}") ?
         $self->${\"cmd_${cmd}"} :
-        die "No such command ${cmd}\n";
+        $self->log->error( "No such command ${cmd}\n" );
     }
 
   }
